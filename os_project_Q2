@@ -1,0 +1,185 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct Process
+{
+	int num;                                                                            //Process(Object) number
+	int PID;                                                                            //Process Id
+	int priority;                                                                       //Process priority
+	int B_Time;                                                                         //Process Burst Time
+	int W_Time;                                                                         //Process Waiting Time
+	int TaT;                                                                            //Process Turn Around Time
+};
+
+// For Swapping the values
+void swapping(struct Process *x, struct Process *y)
+{
+    struct Process
+	temp = *x;
+    *x = *y;
+    *y = temp;
+}
+
+//Bubble Sort for Sorting the Items
+void BubbleSort(struct Process Arr[], int n)
+{
+   int i, j;
+   for (i = 0; i < n-1; i++)
+       for (j = 0; j < n-i-1; j++)
+       {
+           if (Arr[j].priority > Arr[j+1].priority)
+              swapping(&Arr[j], &Arr[j+1]);
+       }
+
+}
+
+// Function to find the waiting time for all processes
+void FindWaitingTime(struct Process Proc[], int n)
+{
+	int i;                     // waiting time for first process is 0
+    Proc[0].W_Time = 0;        // calculating waiting time
+    for (i = 1; i < n ; i++ )
+        Proc[i].W_Time =  Proc[i-1].B_Time + Proc[i-1].W_Time;
+}
+
+// Function to find the waiting time for all processes
+void findRoundWaitingTime(struct Process Proc[],int n, int curr_Time, int Quantum,int *Ghantt,int n2)
+{
+	int i;
+    // Make a copy of burst times to store remaining burst times.
+    int Rem_bt[n],j = 0;
+    for (i = 0 ; i < n ; i++)
+        Rem_bt[i] =  Proc[i].B_Time;
+    int t = curr_Time; // Current time
+    
+    // Keep traversing processes in round robin manner until all of them are finished.
+    while (1)
+    {
+        int Done = 1;
+        int i;
+        // Traverse all processes one by one repeatedly
+        for ( i = 0 ; i < n; i++)
+        {
+            // If burst time of a process is greater than 0, then only need to process further
+            if (Rem_bt[i] > 0)
+            {
+                Done = 0; // There is a pending process
+
+                if (Rem_bt[i] > Quantum)
+                {
+                    // Increase the value of t i.e. shows how much time a process has been processed
+                    t += Quantum;
+                    // Decrease the burst_time of current process by Quantum
+                    Rem_bt[i] -= Quantum;
+                }
+                // If burst time is smaller than or equal to Quantum. Last cycle for this process
+                else
+                {
+                    // Increase the value of t i.e. shows how much time a process has been processed
+                    t = t + Rem_bt[i];
+                    // Waiting time is current time minus time used by this process
+                    Proc[i].W_Time = t - Proc[i].B_Time;
+                    // As the process gets fully executed make its remaining burst time = 0
+                    Rem_bt[i] = 0;
+                }
+               Ghantt[j+n2] = Proc[i].PID;j++;
+            }
+        }
+
+        // If all processes are Done
+        if (Done == 1)
+          break;
+    }
+}
+
+// Function to calculate turn around time
+void FindTurnAroundTime(struct Process Proc[], int n)
+{
+	int  i;
+    // calculating turnaround time by adding "B_Time[i] + W_Time[i]"
+    for (i = 0; i < n ; i++)
+        Proc[i].TaT = Proc[i].B_Time + Proc[i].W_Time;
+}
+
+//Function to calculate average time
+void FindavgTime(struct Process Proc[], int n)
+{
+    int Total_Wt = 0, Total_Tat = 0,i;
+
+    //Function to find turn around time for all processes
+    FindTurnAroundTime(Proc, n);
+
+    // Calculate total waiting time and total turn around time
+    for (i=0; i<n; i++)
+    {
+        Total_Wt = Total_Wt + Proc[i].W_Time;
+        Total_Tat = Total_Tat + Proc[i].TaT;
+        printf("    %d\t\t%d\t\t%d\t\t%d\n",Proc[i].PID,Proc[i].B_Time,Proc[i].W_Time,Proc[i].TaT);
+    }
+
+//    printf("\nAverage waiting time = %f",((float)Total_Wt / (float)n));
+//    printf("\nAverage turn around time = %f",((float)Total_Tat / (float)n));
+}
+
+void PriorityScheduling(struct Process Proc[], int n,int *Ghantt)
+{
+	int i;
+    // Sort processes by priority
+    BubbleSort(Proc,n);
+    for(i=0;i<n;i++)
+        Ghantt[i] = Proc[i].PID;
+
+    //Display processes along with all details
+    printf("\nProcesses | Burst time | Waiting time | Turn around time\n");
+
+    FindavgTime(Proc, n);
+}
+
+int main()
+{
+	int i=0,n;
+	int Q1_Size, Q2_Size, Quantum = 2,Sum_Burst = 0;
+
+	printf("Enter the number of Processes : ");
+	scanf("%d",&n);
+
+	struct Process P_Input[n];
+	struct Process Q_Input[n];
+	Q1_Size = n;
+	Q2_Size = 0;
+
+	printf("PID | Burst_time | priority \n");
+    for(i=0;i< Q1_Size;i++)
+	{
+	    scanf("%d%d%d",&P_Input[i].PID,&P_Input[i].B_Time,&P_Input[i].priority);
+	    P_Input[i].num = i+1;
+
+		while (i-1>-1 && (P_Input[i].priority < P_Input[i-1].priority))
+        {
+            Q_Input[Q2_Size].num = P_Input[i-1].num;
+            Q_Input[Q2_Size].PID = P_Input[i-1].PID;
+            Q_Input[Q2_Size].B_Time = P_Input[i-1].B_Time;
+            Q_Input[Q2_Size].priority = P_Input[i-1].priority;
+            P_Input[i-1] = P_Input[i];
+            Q2_Size++;
+            Q1_Size--;
+            i--;
+        }
+    }
+    for(i=0;i<Q2_Size;i++)
+        Sum_Burst += Q_Input[i].B_Time;
+    Sum_Burst = (Sum_Burst/Quantum)+1;
+    Sum_Burst += Q1_Size;
+    int Ghantt[Sum_Burst];
+
+    //Function to find waiting time of all processes
+    FindWaitingTime(P_Input, Q1_Size);
+    PriorityScheduling(P_Input, Q1_Size,Ghantt);
+    // Function to find waiting time of all processes
+    findRoundWaitingTime(Q_Input, Q2_Size, P_Input[Q1_Size-1].W_Time + P_Input[Q1_Size-1].B_Time, Quantum,Ghantt,Q1_Size);
+    FindavgTime(Q_Input, Q2_Size);
+	int j;
+    printf("\nOrder in which processes gets executed \n");
+    for(j=0;j<Sum_Burst-1;j++)
+        printf("P%d ",Ghantt[j]);
+}
